@@ -1,0 +1,31 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Python: Lab 2 Demo (Task 1)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "labs.lab02.main",
+      "args": ["demo"],
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Python: Lab 2 Analyze (Task 2)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "labs.lab02.main",
+      "args": [
+        "analyze",
+        "--auth-log",
+        "labs/lab02/data/data_v04/auth.log",
+        "--threshold",
+        "5",
+        "--window-min",
+        "5",
+        "--output-json",
+        "labs/lab02/data/blocklist_ips.json"
+      ],
+      "console": "integratedTerminal"
+    }
+  ]
+}
