@@ -33,7 +33,6 @@ class User:
         self.email = email  # Спрацьовує setter із валідацією
         self.role: str = role
         self.active: bool = active
-
         # Приватні атрибути для хешування пароля (name mangling)
         self.__password_hash: bytes | None = None
         self.__password_salt: bytes | None = None
@@ -188,14 +187,12 @@ class UserAccount:
         if self._user.username != username or not self._user.active:
             self._audit_log.add_log(username, "login_failure")
             return False
-
         if not self._user.check_password(password):
             self._audit_log.add_log(username, "login_failure")
             return False
 
         now = datetime.now(tz=timezone.utc)
         self._session = Session(ip=ip, login_time=now, last_activity=now)
-        self._session.touch()
         self._audit_log.add_log(username, "login_success")
         return True
 
@@ -243,13 +240,73 @@ class UserAccount:
 
 
 if __name__ == "__main__":
-    # Тестовий запуск при прямому натисканні Run на файлі task1.py
-    test_user = User("sec_analyst", "analyst@corp.ua")
-    test_user.set_password("SecurePass123!")
-    account = UserAccount(test_user)
-    print(
-        "Спроба входу з правильним паролем:",
-        account.login("sec_analyst", "SecurePass123!", "192.168.1.10"),
+    print("=== Демонстрація Завдання 1: ООП Модель Безпеки ===\n")
+
+    # 1. Валідація email та хешування
+    print("[1] Створення користувача та валідація email:")
+    user = User(username="sec_analyst", email="analyst@corp.ua")
+    user.set_password("SecureStudentPass2026!")
+    print(f"  Створено: {user}")
+    try:
+        print("  Спроба встановити некоректний email 'bad_mail@@'...")
+        user.email = "bad_mail@@"
+    except ValueError as e:
+        print(f"  [Валідація спрацювала]: {e}")
+
+    # 2. Наслідування та права Admin
+    print("\n[2] Перевірка наслідування та дозволів Admin:")
+    admin = Admin(
+        username="lead_admin",
+        email="root.lead@cyber.ua",
+        permissions={"view_logs", "edit_rules"},
     )
-    print("Сесія активна:", account.is_authenticated())
-    print("Логи аудиту:", account["audit_log"].show_all())
+    admin.set_password("RootAccessOnly2026#")
+    print(f"  Початкові права: {admin}")
+    admin.grant_permission("quarantine_host")
+    admin.revoke_permission("edit_rules")
+    print(f"  Оновлені права:  {admin}")
+    print(f"  Чи є дозвіл 'quarantine_host': {admin.has_permission('quarantine_host')}")
+
+    # 3. Аутентифікація, сесії та аудит
+    print("\n[3] Тестування UserAccount та AuditLog:")
+    audit = AuditLog()
+    account = UserAccount(user=user, audit_log=audit)
+    print("  Спроба входу з некоректним паролем:")
+    res_fail = account.login("sec_analyst", "WrongPassword", "192.168.1.45")
+    print(f"  Результат: {res_fail} | Сесія активна: {account.is_authenticated()}")
+    print("  Спроба входу з валідним паролем:")
+    res_ok = account.login("sec_analyst", "SecureStudentPass2026!", "192.168.1.45")
+    print(f"  Результат: {res_ok} | Сесія активна: {account.is_authenticated()}")
+
+    # 4. Імітація закінчення таймауту сесії
+    print("\n[4] Перевірка таймауту сесії (імітація зсуву часу):")
+    sess = account["session"]
+    if sess:
+        sess.last_activity = sess.last_activity.replace(year=2020)
+    print(
+        f"  Перевірка після застаріння: is_authenticated = {account.is_authenticated()}"
+    )
+
+    # 5. Повторний логін та вихід
+    account.login("sec_analyst", "SecureStudentPass2026!", "10.0.0.12")
+    print(f"  Повторний вхід успішний. is_authenticated: {account.is_authenticated()}")
+    account.logout()
+    print(f"  Після logout(). is_authenticated: {account.is_authenticated()}")
+
+    # 6. Журнал аудиту
+    print("\n[5] Вміст AuditLog:")
+    for idx, log in enumerate(audit.show_all(), start=1):
+        ts = log.timestamp.strftime("%Y-%m-%d %H:%M:%S UTC")
+        print(f"  {idx}. [{ts}] Користувач: '{log.username}' | Подія: '{log.action}'")
+
+    # 7. Захист через магічні методи
+    print("\n[6] Перевірка магічних методів __getitem__ / __setitem__:")
+    print(f"  account['user']: {account['user']}")
+    try:
+        _ = account["__password_hash"]
+    except KeyError as e:
+        print(
+            f"  [Захист приватних даних]: Спроба отримати хеш повернула KeyError: {e}"
+        )
+
+    print("\n=== Демонстрація успішно завершена ===")

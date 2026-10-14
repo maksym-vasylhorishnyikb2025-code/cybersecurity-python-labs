@@ -46,7 +46,6 @@ def parse_log_line(line: str, current_year: int) -> AuthEvent | None:
     match = AUTH_LOG_REGEX.search(line)
     if not match:
         return None
-
     data = match.groupdict()
     date_str = f"{current_year} {data['month']} {int(data['day']):02d} {data['time']}"
     try:
@@ -55,7 +54,6 @@ def parse_log_line(line: str, current_year: int) -> AuthEvent | None:
         )
     except ValueError:
         return None
-
     return AuthEvent(
         timestamp=ts,
         status=data["status"],
@@ -76,11 +74,9 @@ def detect_bruteforce(
             ip_failed_events[ev.ip].append(ev)
 
     incidents: list[BruteforceIncident] = []
-
     for ip, fails in ip_failed_events.items():
         fails.sort(key=lambda x: x.timestamp)
         is_attacker = False
-
         left = 0
         for right in range(len(fails)):
             while (
@@ -128,7 +124,7 @@ def export_report(
         json.dump(data, f, indent=2, ensure_ascii=False)
 
 
-def parse_args() -> argparse.Namespace:
+def parse_args(cmd_args: list[str] | None = None) -> argparse.Namespace:
     default_log = Path("labs/lab02/data/data_v04/auth.log")
     parser = argparse.ArgumentParser(
         description="Аналізатор журналів аутентифікації SSH та детекція Bruteforce (Варіант 4)"
@@ -157,22 +153,20 @@ def parse_args() -> argparse.Namespace:
         default=Path("labs/lab02/data/blocklist_ips.json"),
         help="Шлях для збереження JSON-звіту",
     )
-    return parser.parse_args()
+    return parser.parse_args(cmd_args)
 
 
-def main() -> None:
+def run_analyzer(cmd_args: list[str] | None = None) -> None:
     logging.basicConfig(
         level=logging.INFO,
         format="[%(levelname)s] %(message)s",
     )
-    args = parse_args()
-
+    args = parse_args(cmd_args)
     if not args.auth_log.exists():
         logger.error("Файл журналу не знайдено: %s", args.auth_log)
         sys.exit(1)
 
     logger.info("Analyzing authentication events in %s...", args.auth_log)
-
     current_year = datetime.now(tz=timezone.utc).year
     events: list[AuthEvent] = []
     total_lines = 0
@@ -207,9 +201,8 @@ def main() -> None:
 
     print("\n=== SSH Bruteforce Detection Results ===")
     print(
-        f"Failed Attempts Threshold: >{args.threshold} attempts in {args.window_min} minutes"
+        f"Failed Attempts Threshold: >={args.threshold} attempts in {args.window_min} minutes"
     )
-
     for inc in incidents:
         users_str = ", ".join(inc.target_users[:5])
         if len(inc.target_users) > 5:
@@ -234,4 +227,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    run_analyzer()

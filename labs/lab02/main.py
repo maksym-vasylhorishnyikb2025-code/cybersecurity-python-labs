@@ -4,25 +4,23 @@ import argparse
 import sys
 from pathlib import Path
 
-# Визначаємо шлях до кореня проєкту (папки lab3)
+# Визначаємо шлях до кореня репозиторію та додаємо його в sys.path
 current_dir = Path(__file__).resolve().parent
 project_root = current_dir.parent.parent
-
-# Додаємо корінь проєкту в sys.path на самому початку
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
-# Тепер імпорти спрацьовують за будь-якого способу запуску
+# Імпортуємо модулі обох завдань
 try:
     from labs.lab02.task1 import Admin, AuditLog, User, UserAccount
-    from labs.lab02.task2 import main as run_task2
+    from labs.lab02.task2 import run_analyzer
 except ModuleNotFoundError:
-    # Запасний варіант для прямого запуску всередині папки
     from task1 import Admin, AuditLog, User, UserAccount
-    from task2 import main as run_task2
+    from task2 import run_analyzer
 
 
 def run_demo() -> None:
+    """Демонстраційний сценарій об'єктної моделі безпеки (Завдання 1)."""
     print("=== Демонстрація Завдання 1: ООП Модель Безпеки ===\n")
 
     # 1. Валідація email та хешування
@@ -30,7 +28,6 @@ def run_demo() -> None:
     user = User(username="sec_analyst", email="analyst@corp.ua")
     user.set_password("SecureStudentPass2026!")
     print(f"  Створено: {user}")
-
     try:
         print("  Спроба встановити некоректний email 'bad_mail@@'...")
         user.email = "bad_mail@@"
@@ -55,11 +52,9 @@ def run_demo() -> None:
     print("\n[3] Тестування UserAccount та AuditLog:")
     audit = AuditLog()
     account = UserAccount(user=user, audit_log=audit)
-
     print("  Спроба входу з некоректним паролем:")
     res_fail = account.login("sec_analyst", "WrongPassword", "192.168.1.45")
     print(f"  Результат: {res_fail} | Сесія активна: {account.is_authenticated()}")
-
     print("  Спроба входу з валідним паролем:")
     res_ok = account.login("sec_analyst", "SecureStudentPass2026!", "192.168.1.45")
     print(f"  Результат: {res_ok} | Сесія активна: {account.is_authenticated()}")
@@ -103,21 +98,19 @@ def main() -> None:
         description="Центральна точка входу до Лабораторної роботи №2"
     )
     subparsers = parser.add_subparsers(dest="command", required=False)
-
     subparsers.add_parser("demo", help="Запустити демонстрацію Завдання 1 (ООП)")
     subparsers.add_parser(
         "analyze", help="Запустити CLI-утиліту за варіантом (Завдання 2)"
     )
 
     args, extra_args = parser.parse_known_args()
-
+    # Якщо команду явно не вказано (наприклад, при натисканні Run у VS Code), виконуємо demo
     command = args.command or "demo"
 
     if command == "demo":
         run_demo()
     elif command == "analyze":
-        sys.argv = [sys.argv[0]] + extra_args
-        run_task2()
+        run_analyzer(extra_args)
 
 
 if __name__ == "__main__":
