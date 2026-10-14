@@ -266,6 +266,7 @@ if __name__ == "__main__":
     admin.revoke_permission("edit_rules")
     print(f"  Оновлені права:  {admin}")
     print(f"  Чи є дозвіл 'quarantine_host': {admin.has_permission('quarantine_host')}")
+   
 
     # 3. Аутентифікація, сесії та аудит
     print("\n[3] Тестування UserAccount та AuditLog:")
